@@ -1,0 +1,97 @@
+// src/pages/admin/ManageDepartmentsPage.jsx
+import { useState } from 'react'
+import AppLayout from '../../components/layout/AppLayout'
+import { DEPARTMENTS, CLEARANCE_DEPARTMENTS } from '../../constants/mockData'
+import { Plus, Edit2, Trash2, CheckCircle2 } from 'lucide-react'
+
+export default function ManageDepartmentsPage() {
+  const [depts, setDepts] = useState(DEPARTMENTS)
+  const [showAdd, setShowAdd] = useState(false)
+  const [newName, setNewName] = useState('')
+
+  function addDept() {
+    if (!newName.trim()) return
+    setDepts(prev => [...prev, { id: Date.now(), name: newName.trim() }])
+    setNewName('')
+    setShowAdd(false)
+  }
+
+  function removeDept(id) {
+    if (confirm('Remove this department?')) {
+      setDepts(prev => prev.filter(d => d.id !== id))
+    }
+  }
+
+  return (
+    <AppLayout title="Manage Departments">
+      <div className="max-w-2xl mx-auto space-y-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800">All Departments</h2>
+          <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2">
+            <Plus size={15} /> Add Department
+          </button>
+        </div>
+
+        <div className="card overflow-hidden">
+          <div className="divide-y divide-slate-100">
+            {depts.map(d => {
+              const isClearance = CLEARANCE_DEPARTMENTS.find(cd => cd.id === d.id)
+              return (
+                <div key={d.id} className="flex items-center gap-3 px-5 py-3.5">
+                  <div className="w-8 h-8 bg-primary-600/10 rounded-lg flex items-center justify-center text-xs font-bold text-primary-600">
+                    {d.name.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{d.name}</div>
+                    {isClearance && (
+                      <div className="flex items-center gap-1 text-xs text-green-600 mt-0.5">
+                        <CheckCircle2 size={11} /> Required for no-dues clearance
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <button className="p-1.5 text-slate-400 hover:text-accent-600 hover:bg-accent-50 rounded-lg" title="Edit">
+                      <Edit2 size={13} />
+                    </button>
+                    <button onClick={() => removeDept(d.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Delete">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <h3 className="section-title mb-3">Clearance Chain Configuration</h3>
+          <p className="text-xs text-slate-500 mb-3">These departments are part of the mandatory no-dues clearance process:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {CLEARANCE_DEPARTMENTS.map(d => (
+              <div key={d.id} className="flex items-center gap-2 bg-accent-50 border border-accent-200 rounded-xl px-3 py-2">
+                <span className="text-base">{d.icon}</span>
+                <span className="text-xs font-semibold text-accent-700">{d.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {showAdd && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm animate-fade-in">
+              <h3 className="font-bold text-slate-800 mb-4">Add Department</h3>
+              <div>
+                <label className="label">Department Name</label>
+                <input type="text" className="input-field" placeholder="e.g. Sports Department" value={newName} onChange={e => setNewName(e.target.value)} />
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => setShowAdd(false)} className="btn-secondary flex-1">Cancel</button>
+                <button onClick={addDept} className="btn-primary flex-1">Add</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AppLayout>
+  )
+}
