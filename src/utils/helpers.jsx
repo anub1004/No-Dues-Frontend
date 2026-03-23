@@ -49,3 +49,47 @@ export function getAvatarColor(name = '') {
   const idx = name.charCodeAt(0) % colors.length
   return colors[idx]
 }
+
+/**
+ * Render accordion content for department status
+ */
+export function renderAccordionContent(status) {
+  if (!status) return null
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="text-xs font-semibold text-slate-600 uppercase">Status</div>
+          <div className="mt-1 text-sm font-medium text-slate-900">
+            {getStatusLabel(status.status)}
+          </div>
+        </div>
+        {status.approvedAt && (
+          <div>
+            <div className="text-xs font-semibold text-slate-600 uppercase">Approved On</div>
+            <div className="mt-1 text-sm font-medium text-slate-900">
+              {formatDate(status.approvedAt)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {status.approvedBy && (
+        <div>
+          <div className="text-xs font-semibold text-slate-600 uppercase">Approved By</div>
+          <div className="mt-1 text-sm font-medium text-slate-900">{status.approvedBy}</div>
+        </div>
+      )}
+
+      {status.remarks && (
+        <div>
+          <div className="text-xs font-semibold text-slate-600 uppercase">Remarks</div>
+          <div className="mt-1 text-sm text-slate-700 bg-slate-100 rounded p-2">
+            {status.remarks}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

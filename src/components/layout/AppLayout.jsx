@@ -9,7 +9,7 @@ export default function AppLayout({ children, title }) {
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex w-60 flex-shrink-0 shadow-xl">
+      <div className="hidden md:flex flex-shrink-0 border-r border-slate-200">
         <Sidebar />
       </div>
 

@@ -1,11 +1,12 @@
 // src/pages/employee/RequestTrackerPage.jsx
 import { useParams, useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import ClearanceTimeline from '../../components/common/ClearanceTimeline'
+import Accordion from '../../components/common/Accordion'
 import StatusBadge from '../../components/common/StatusBadge'
+import DetailsCard from '../../components/common/DetailsCard'
 import { useRequestStore } from '../../store/requestStore'
-import { formatDate, getProgressCount } from '../../utils/helpers'
-import { ArrowLeft, Download, Calendar, User, Briefcase, FileText } from 'lucide-react'
+import { formatDate, getProgressCount, renderAccordionContent } from '../../utils/helpers'
+import { ArrowLeft, Download, Calendar, User, Briefcase, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react'
 
 export default function RequestTrackerPage() {
   const { id } = useParams()
@@ -112,9 +113,27 @@ export default function RequestTrackerPage() {
         )}
 
         {/* Department-wise timeline */}
-        <div className="card p-5">
-          <h3 className="section-title mb-4">Department-wise Clearance Status</h3>
-          <ClearanceTimeline departmentStatuses={req.departmentStatuses} />
+        <div className="card">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h3 className="section-title">Department-wise Clearance Status</h3>
+          </div>
+          <Accordion
+            items={req.departmentStatuses.map((status, idx) => {
+              const StatusIcon =
+                status.status === 'APPROVED' ? CheckCircle2 :
+                status.status === 'REJECTED' ? XCircle :
+                Clock
+
+              return {
+                id: `dept-${idx}`,
+                title: status.deptName,
+                subtitle: `Status: ${status.status}`,
+                icon: StatusIcon,
+                content: renderAccordionContent(status),
+              }
+            })}
+            containerClass="!rounded-none"
+          />
         </div>
 
         {/* Documents */}

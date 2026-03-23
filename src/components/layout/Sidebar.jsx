@@ -1,10 +1,10 @@
-// src/components/layout/Sidebar.jsx
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import {
-  LayoutDashboard, FilePlus, FileText, Award, Bell,
+  LayoutDashboard, FilePlus, FileText, Award,
   Users, Building2, GitBranch, BarChart3, Shield,
-  ClipboardList, CheckSquare, LogOut, X, ChevronRight,
+  ClipboardList, CheckSquare, LogOut, X, ChevronLeft, Menu,
 } from 'lucide-react'
 
 const NAV = {
@@ -29,376 +29,457 @@ const NAV = {
   ],
 }
 
-const ROLE_META = {
-  EMPLOYEE: { label: 'Employee Portal',   badge: 'STAFF',  color: '#22d3ee' },
-  HOD:      { label: 'Department Portal', badge: 'HOD',    color: '#a78bfa' },
-  ADMIN:    { label: 'Admin Panel',       badge: 'ADMIN',  color: '#fb923c' },
-}
-
 export default function Sidebar({ onClose }) {
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
-  const items    = NAV[user?.role] || []
-  const meta     = ROLE_META[user?.role] || { label: 'Portal', badge: '—', color: '#22d3ee' }
+  const items = NAV[user?.role] || []
 
   function handleLogout() {
     logout()
     navigate('/login')
   }
 
-  /* initials from name */
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
     : 'U'
 
   return (
     <>
-      {/* ── Google Font ── */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-        .sb-root {
-          font-family: 'Plus Jakarta Sans', sans-serif;
+        .sidebar {
+          font-family: 'DM Sans', system-ui, sans-serif;
+          height: 100%;
           display: flex;
           flex-direction: column;
-          height: 100%;
-          width: 100%;
-          background: #0b1120;
-          position: relative;
-          overflow: hidden;
+          background: #f8fafc;
+          border-right: 1px solid #e2e8f0;
+          transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          overflow-y: auto;
+          overflow-x: hidden;
         }
 
-        /* mesh gradient background */
-        .sb-root::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background:
-            radial-gradient(ellipse 70% 50% at 10% 0%,   rgba(99,102,241,.18) 0%, transparent 55%),
-            radial-gradient(ellipse 50% 40% at 90% 100%, rgba(20,184,166,.12) 0%, transparent 50%);
-          pointer-events: none;
+        .sidebar.collapsed {
+          width: 72px;
         }
 
-        /* subtle grid lines */
-        .sb-root::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background-image:
-            linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-          background-size: 28px 28px;
-          pointer-events: none;
+        .sidebar.expanded {
+          width: 260px;
         }
 
-        /* ── HEADER ── */
-        .sb-header {
-          position: relative; z-index: 2;
+        .sidebar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 3px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+
+        .sidebar-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 22px 20px 18px;
-          border-bottom: 1px solid rgba(255,255,255,.06);
+          padding: 16px 12px;
+          border-bottom: 1px solid #e2e8f0;
+          gap: 12px;
         }
 
-        .sb-brand {
-          display: flex; align-items: center; gap: 11px;
-        }
-
-        .sb-logo-box {
-          width: 38px; height: 38px;
-          border-radius: 11px;
-          background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%);
-          display: flex; align-items: center; justify-content: center;
-          font-weight: 800; font-size: 17px; color: #fff;
-          box-shadow: 0 4px 14px rgba(99,102,241,.45);
-          flex-shrink: 0;
-          letter-spacing: -.5px;
-        }
-
-        .sb-brand-text {}
-        .sb-brand-name {
-          font-size: 13.5px; font-weight: 700;
-          color: #f1f5f9;
-          line-height: 1.2;
-          letter-spacing: -.2px;
-        }
-        .sb-brand-sub {
-          font-size: 10.5px; font-weight: 500;
-          color: rgba(255,255,255,.35);
-          margin-top: 1px;
-        }
-
-        .sb-close-btn {
-          background: rgba(255,255,255,.06);
-          border: none; cursor: pointer;
-          color: rgba(255,255,255,.4);
+        .sidebar-logo {
+          width: 36px;
+          height: 36px;
           border-radius: 8px;
-          padding: 5px;
-          display: flex; align-items: center;
-          transition: all .15s;
-        }
-        .sb-close-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
-
-        /* ── ROLE PILL ── */
-        .sb-role-pill {
-          position: relative; z-index: 2;
-          margin: 14px 16px 6px;
-          display: flex; align-items: center; gap: 9px;
-          background: rgba(255,255,255,.04);
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 10px;
-          padding: 9px 12px;
-        }
-
-        .sb-role-indicator {
-          width: 7px; height: 7px;
-          border-radius: 50%;
-          flex-shrink: 0;
-          box-shadow: 0 0 8px currentColor;
-        }
-
-        .sb-role-label {
-          flex: 1;
-          font-size: 11.5px; font-weight: 600;
-          color: rgba(255,255,255,.55);
-          letter-spacing: .04em;
-        }
-
-        .sb-role-badge {
-          font-size: 9.5px; font-weight: 800;
-          letter-spacing: .1em;
-          padding: 2px 7px;
-          border-radius: 20px;
-          border: 1px solid;
-        }
-
-        /* ── SECTION LABEL ── */
-        .sb-section-label {
-          position: relative; z-index: 2;
-          font-size: 9.5px; font-weight: 700;
-          letter-spacing: .14em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,.2);
-          padding: 14px 20px 6px;
-        }
-
-        /* ── NAV ── */
-        .sb-nav {
-          position: relative; z-index: 2;
-          flex: 1;
-          padding: 4px 12px;
-          overflow-y: auto;
-          scrollbar-width: none;
-        }
-        .sb-nav::-webkit-scrollbar { display: none; }
-
-        .sb-link {
+          background: linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%);
           display: flex;
           align-items: center;
-          gap: 11px;
+          justify-content: center;
+          color: #fff;
+          font-weight: 700;
+          font-size: 16px;
+          flex-shrink: 0;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(30, 58, 95, 0.15);
+          border: none;
+          padding: 0;
+        }
+
+        .sidebar-logo:hover {
+          transform: scale(1.05);
+        }
+
+        .sidebar-brand-text {
+          flex: 1;
+          min-width: 0;
+          opacity: 1;
+          transition: opacity 0.3s;
+          overflow: hidden;
+        }
+
+        .sidebar.collapsed .sidebar-brand-text {
+          opacity: 0;
+          width: 0;
+        }
+
+        .sidebar-brand-name {
+          font-size: 13px;
+          font-weight: 700;
+          color: #1e293b;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .sidebar-brand-sub {
+          font-size: 10px;
+          color: #64748b;
+          margin-top: 2px;
+          white-space: nowrap;
+        }
+
+        .sidebar-toggle {
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          background: #e2e8f0;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #64748b;
+          transition: all 0.2s;
+          flex-shrink: 0;
+          padding: 0;
+        }
+
+        .sidebar-toggle:hover {
+          background: #cbd5e1;
+          color: #475569;
+        }
+
+        .sidebar-nav {
+          flex: 1;
+          padding: 12px;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+
+        .sidebar-section-title {
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: #94a3b8;
+          padding: 12px 12px 6px;
+          opacity: 1;
+          transition: opacity 0.3s;
+          white-space: nowrap;
+          margin: 12px 0 6px 0;
+        }
+
+        .sidebar.collapsed .sidebar-section-title {
+          opacity: 0;
+          width: 0;
+          padding: 0;
+          margin: 0;
+          height: 0;
+          overflow: hidden;
+        }
+
+        .sidebar-link {
+          display: flex;
+          align-items: center;
+          gap: 12px;
           padding: 10px 12px;
-          border-radius: 10px;
-          margin-bottom: 2px;
+          margin-bottom: 6px;
+          border-radius: 8px;
           text-decoration: none;
           font-size: 13px;
           font-weight: 500;
-          transition: all .18s;
-          color: rgba(255,255,255,.45);
-          position: relative;
+          color: #64748b;
+          transition: all 0.2s;
           border: 1px solid transparent;
+          position: relative;
+          cursor: pointer;
         }
 
-        .sb-link:hover {
-          color: rgba(255,255,255,.85);
-          background: rgba(255,255,255,.06);
-          border-color: rgba(255,255,255,.08);
+        .sidebar-link:hover {
+          color: #0d9488;
+          background: #f1f5f9;
+          border-color: #e2e8f0;
         }
 
-        .sb-link.active {
+        .sidebar-link.active {
           color: #fff;
-          background: linear-gradient(135deg, rgba(99,102,241,.28) 0%, rgba(34,211,238,.12) 100%);
-          border-color: rgba(99,102,241,.35);
-          box-shadow: 0 2px 12px rgba(99,102,241,.15);
+          background: linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%);
+          border-color: #0d9488;
+          box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
           font-weight: 600;
         }
 
-        /* active left accent bar */
-        .sb-link.active::before {
-          content: '';
-          position: absolute;
-          left: -1px; top: 20%; bottom: 20%;
-          width: 3px;
-          border-radius: 0 3px 3px 0;
-          background: linear-gradient(180deg, #6366f1, #22d3ee);
-        }
-
-        .sb-link-icon {
+        .sidebar-link-icon {
+          width: 18px;
+          height: 18px;
           flex-shrink: 0;
-          opacity: .7;
-          transition: opacity .18s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
-        .sb-link.active .sb-link-icon { opacity: 1; }
 
-        .sb-link-arrow {
-          margin-left: auto;
+        .sidebar-link-label {
+          flex: 1;
+          min-width: 0;
+          opacity: 1;
+          transition: opacity 0.3s;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .sidebar.collapsed .sidebar-link-label {
           opacity: 0;
-          transition: opacity .15s, transform .15s;
-        }
-        .sb-link.active .sb-link-arrow,
-        .sb-link:hover .sb-link-arrow {
-          opacity: .5;
-          transform: translateX(2px);
+          position: absolute;
+          width: 0;
+          height: 0;
+          overflow: hidden;
         }
 
-        /* ── FOOTER ── */
-        .sb-footer {
-          position: relative; z-index: 2;
-          padding: 12px 12px 16px;
-          border-top: 1px solid rgba(255,255,255,.06);
+        .sidebar-footer {
+          padding: 12px;
+          border-top: 1px solid #e2e8f0;
         }
 
-        /* user card */
-        .sb-user-card {
-          display: flex; align-items: center; gap: 10px;
-          background: rgba(255,255,255,.05);
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 12px;
-          padding: 10px 12px;
-          margin-bottom: 6px;
-        }
-
-        .sb-avatar {
-          width: 34px; height: 34px;
-          border-radius: 9px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 12px; font-weight: 800;
-          color: #fff;
-          flex-shrink: 0;
-          background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%);
-          box-shadow: 0 2px 8px rgba(99,102,241,.35);
-        }
-
-        .sb-user-info { flex: 1; min-width: 0; }
-        .sb-user-name {
-          font-size: 12.5px; font-weight: 700;
-          color: #f1f5f9;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .sb-user-id {
-          font-size: 10.5px; font-weight: 500;
-          color: rgba(255,255,255,.3);
-          margin-top: 1px;
-        }
-
-        .sb-online-dot {
-          width: 7px; height: 7px;
-          border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 6px #22c55e;
-          flex-shrink: 0;
-        }
-
-        /* logout btn */
-        .sb-logout {
-          display: flex; align-items: center; gap: 9px;
-          width: 100%;
-          padding: 9px 12px;
-          border: none; cursor: pointer;
-          border-radius: 10px;
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          font-size: 12.5px; font-weight: 600;
-          color: rgba(255,255,255,.35);
+        .sidebar-user {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          text-decoration: none;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
           background: transparent;
-          transition: all .18s;
-          letter-spacing: .01em;
-        }
-        .sb-logout:hover {
-          color: #f87171;
-          background: rgba(248,113,113,.08);
-          border: 1px solid rgba(248,113,113,.15);
+          width: 100%;
+          text-align: left;
+          font-family: 'DM Sans', system-ui, sans-serif;
         }
 
-        /* staggered fade-in */
-        @keyframes sb-fadein {
-          from { opacity: 0; transform: translateX(-8px); }
-          to   { opacity: 1; transform: translateX(0); }
+        .sidebar-user:hover {
+          background: #f1f5f9;
         }
-        .sb-link {
-          animation: sb-fadein .25s ease both;
+
+        .sidebar-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-weight: 700;
+          font-size: 14px;
+          flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(30, 58, 95, 0.15);
         }
-        ${items.map((_, i) => `.sb-link:nth-child(${i + 1}) { animation-delay: ${i * 40}ms; }`).join('\n')}
+
+        .sidebar-user-info {
+          flex: 1;
+          min-width: 0;
+          opacity: 1;
+          transition: opacity 0.3s;
+          overflow: hidden;
+        }
+
+        .sidebar.collapsed .sidebar-user-info {
+          opacity: 0;
+          width: 0;
+        }
+
+        .sidebar-user-name {
+          font-size: 12px;
+          font-weight: 600;
+          color: #1e293b;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .sidebar-user-role {
+          font-size: 10px;
+          color: #64748b;
+          margin-top: 1px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .sidebar-logout {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: none;
+          background: #fee2e2;
+          color: #dc2626;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: 'DM Sans', system-ui, sans-serif;
+        }
+
+        .sidebar-logout:hover {
+          background: #fecaca;
+          color: #b91c1c;
+        }
+
+        .sidebar-logout-icon {
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+        }
+
+        .sidebar-logout-label {
+          flex: 1;
+          opacity: 1;
+          transition: opacity 0.3s;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .sidebar.collapsed .sidebar-logout-label {
+          opacity: 0;
+          position: absolute;
+          width: 0;
+          height: 0;
+          overflow: hidden;
+        }
+
+        .sidebar-close-mobile {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 32px;
+          height: 32px;
+          background: #e2e8f0;
+          border: none;
+          cursor: pointer;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #64748b;
+          transition: all 0.2s;
+          z-index: 100;
+          padding: 0;
+        }
+
+        .sidebar-close-mobile:hover {
+          background: #cbd5e1;
+          color: #475569;
+        }
+
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .sidebar-link {
+          animation: fade-in 0.3s ease forwards;
+        }
+
+        ${items.map((_, i) => `.sidebar-link:nth-child(${i + 1}) { animation-delay: ${i * 40}ms; }`).join('\n')}
       `}</style>
 
-      <aside className="sb-root">
-
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : 'expanded'}`}>
         {/* Header */}
-        <div className="sb-header">
-          <div className="sb-brand">
-            <div className="sb-logo-box">C</div>
-            <div className="sb-brand-text">
-              <div className="sb-brand-name">CDGI NoDues</div>
-              <div className="sb-brand-sub">Chameli Devi Group</div>
-            </div>
+        <div className="sidebar-header">
+          <button
+            className="sidebar-logo"
+            title="Home"
+            onClick={() => navigate('/')}
+          >
+            C
+          </button>
+          <div className="sidebar-brand-text">
+            <div className="sidebar-brand-name">CDGI NoDues</div>
+            <div className="sidebar-brand-sub">Chameli Devi Group</div>
           </div>
+          <button
+            className="sidebar-toggle"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? 'Expand' : 'Collapse'}
+          >
+            {isCollapsed ? <Menu size={16} /> : <ChevronLeft size={16} />}
+          </button>
           {onClose && (
-            <button className="sb-close-btn" onClick={onClose} aria-label="Close sidebar">
+            <button
+              className="sidebar-close-mobile md:hidden"
+              onClick={onClose}
+              aria-label="Close sidebar"
+            >
               <X size={16} />
             </button>
           )}
         </div>
 
-        {/* Role pill */}
-        <div className="sb-role-pill">
-          <span
-            className="sb-role-indicator"
-            style={{ color: meta.color, background: meta.color }}
-          />
-          <span className="sb-role-label">{meta.label}</span>
-          <span
-            className="sb-role-badge"
-            style={{ color: meta.color, borderColor: `${meta.color}44`, background: `${meta.color}18` }}
-          >
-            {meta.badge}
-          </span>
-        </div>
-
-        {/* Section label */}
-        <div className="sb-section-label">Navigation</div>
-
-        {/* Nav */}
-        <nav className="sb-nav">
+        {/* Navigation */}
+        <nav className="sidebar-nav">
+      
           {items.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               onClick={onClose}
-              className={({ isActive }) => `sb-link${isActive ? ' active' : ''}`}
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              title={label}
             >
-              <Icon size={16} strokeWidth={2} className="sb-link-icon" />
-              <span>{label}</span>
-              <ChevronRight size={13} className="sb-link-arrow" />
+              <Icon size={18} strokeWidth={2} className="sidebar-link-icon" />
+              <span className="sidebar-link-label">{label}</span>
             </NavLink>
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="sb-footer">
-          <div className="sb-user-card">
-            <div className="sb-avatar">{initials}</div>
-            <div className="sb-user-info">
-              <div className="sb-user-name">{user?.name}</div>
-              <div className="sb-user-id">{user?.empId}</div>
+        <div className="sidebar-footer">
+          <button
+            className="sidebar-user"
+            title={`${user?.name} (${user?.empId})`}
+            onClick={() => navigate('/profile')}
+          >
+            <div className="sidebar-avatar">{initials}</div>
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">{user?.name}</div>
+              <div className="sidebar-user-role">{user?.role}</div>
             </div>
-            <div className="sb-online-dot" title="Online" />
-          </div>
+          </button>
 
-          <button className="sb-logout" onClick={handleLogout}>
-            <LogOut size={14} />
-            Sign Out
+          <button
+            className="sidebar-logout"
+            onClick={handleLogout}
+            title="Sign out"
+          >
+            <LogOut size={18} className="sidebar-logout-icon" />
+            <span className="sidebar-logout-label">Sign Out</span>
           </button>
         </div>
-
       </aside>
     </>
   )

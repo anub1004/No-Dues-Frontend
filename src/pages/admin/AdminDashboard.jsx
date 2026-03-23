@@ -36,8 +36,8 @@ export default function AdminDashboard() {
     <AppLayout title="Admin Dashboard">
       <div className="space-y-6">
         {/* Welcome */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white relative overflow-hidden">
-          <div className="absolute right-0 bottom-0 w-40 h-40 bg-white/5 rounded-full translate-x-1/4 translate-y-1/4" />
+        <div className="bg-gradient-to-r from-slate-900 to-teal-600 rounded-lg p-6 text-white relative overflow-hidden">
+          <div className="absolute right-0 bottom-0 w-40 h-40 bg-white/10 rounded-full translate-x-1/4 translate-y-1/4" />
           <p className="text-white/70 text-sm">System Administrator</p>
           <h2 className="text-2xl font-bold">{user?.name}</h2>
           <p className="text-white/60 text-sm">{user?.designation} · CDGI</p>

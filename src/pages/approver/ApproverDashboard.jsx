@@ -23,7 +23,7 @@ export default function ApproverDashboard() {
     <AppLayout title="Department Dashboard">
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white">
+        <div className="bg-gradient-to-r from-slate-900 to-teal-600 rounded-lg p-6 text-white">
           <p className="text-white/70 text-sm">Welcome,</p>
           <h2 className="text-2xl font-bold">{user?.name} 👋</h2>
           <p className="text-white/60 text-sm mt-1">{user?.designation} · {user?.department}</p>

@@ -3,11 +3,12 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import StatusBadge from '../../components/common/StatusBadge'
-import ClearanceTimeline from '../../components/common/ClearanceTimeline'
+import Accordion from '../../components/common/Accordion'
+import DetailsCard from '../../components/common/DetailsCard'
 import { useAuthStore } from '../../store/authStore'
 import { useRequestStore } from '../../store/requestStore'
-import { formatDate } from '../../utils/helpers'
-import { ArrowLeft, CheckCircle2, XCircle, User, Briefcase, Calendar, FileText, AlertTriangle } from 'lucide-react'
+import { formatDate, renderAccordionContent } from '../../utils/helpers'
+import { ArrowLeft, CheckCircle2, XCircle, User, Briefcase, Calendar, FileText, AlertTriangle, Clock } from 'lucide-react'
 
 export default function RequestDetailPage() {
   const { id } = useParams()
@@ -173,9 +174,27 @@ export default function RequestDetailPage() {
             )}
 
             {/* Full timeline */}
-            <div className="card p-5">
-              <h3 className="section-title mb-4">All Departments Status</h3>
-              <ClearanceTimeline departmentStatuses={req.departmentStatuses} />
+            <div className="card">
+              <div className="px-6 py-4 border-b border-slate-200">
+                <h3 className="section-title">All Departments Status</h3>
+              </div>
+              <Accordion
+                items={req.departmentStatuses.map((status, idx) => {
+                  const StatusIcon =
+                    status.status === 'APPROVED' ? CheckCircle2 :
+                    status.status === 'REJECTED' ? XCircle :
+                    Clock
+
+                  return {
+                    id: `dept-${idx}`,
+                    title: status.deptName,
+                    subtitle: `Status: ${status.status}`,
+                    icon: StatusIcon,
+                    content: renderAccordionContent(status),
+                  }
+                })}
+                containerClass="!rounded-none"
+              />
             </div>
           </>
         )}

@@ -27,14 +27,14 @@ export default function EmployeeDashboard() {
   const latestRequest = myRequests[0]
 
   return (
-    <AppLayout title="Dashboard">
+    <AppLayout title="Chameli Devi Group of Institutions-(CDGI)">
       <div className="space-y-6">
         {/* Welcome banner */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
+        <div className="bg-gradient-to-r from-slate-900 to-teal-600 rounded-lg p-6 text-white shadow-lg relative overflow-hidden">
+          <div className="absolute right-0 top-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
           <div className="relative">
             <p className="text-white/70 text-sm mb-1">Welcome back,</p>
-            <h2 className="text-2xl font-bold mb-1">{user?.name} 👋</h2>
+            <h2 className="text-white text-2xl font-bold mb-1">{user?.name} 👋</h2>
             <p className="text-white/60 text-sm">{user?.designation} · {user?.department}</p>
           </div>
         </div>
