@@ -1,25 +1,86 @@
 // src/pages/admin/ManageDepartmentsPage.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
-import { DEPARTMENTS, CLEARANCE_DEPARTMENTS } from '../../constants/mockData'
-import { Plus, Edit2, Trash2, CheckCircle2 } from 'lucide-react'
+import { adminAPI } from '../../services/api'
+import { Plus, Edit2, Trash2, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
+
+const CLEARANCE_DEPARTMENTS = [
+  { id: 1, name: 'HR Department', icon: '👔' },
+  { id: 2, name: 'Finance Department', icon: '💰' },
+  { id: 3, name: 'Library', icon: '📚' },
+  { id: 4, name: 'IT Department', icon: '💻' },
+  { id: 5, name: 'Operations', icon: '⚙️' },
+  { id: 6, name: 'Administration', icon: '📋' },
+]
 
 export default function ManageDepartmentsPage() {
-  const [depts, setDepts] = useState(DEPARTMENTS)
+  const [departments, setDepartments] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
 
-  function addDept() {
-    if (!newName.trim()) return
-    setDepts(prev => [...prev, { id: Date.now(), name: newName.trim() }])
-    setNewName('')
-    setShowAdd(false)
+  useEffect(() => {
+    fetchDepartments()
+  }, [])
+
+  async function fetchDepartments() {
+    try {
+      setLoading(true)
+      const data = await adminAPI.getDepartments()
+      setDepartments(data || [])
+      setError('')
+    } catch (err) {
+      setError(err.message || 'Failed to load departments')
+      console.error('Fetch error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  function removeDept(id) {
-    if (confirm('Remove this department?')) {
-      setDepts(prev => prev.filter(d => d.id !== id))
+  async function handleAddDepartment() {
+    if (!newName.trim()) {
+      alert('Please enter department name')
+      return
     }
+
+    try {
+      setActionLoading(true)
+      await adminAPI.createDepartment({ name: newName.trim() })
+      setNewName('')
+      setShowAdd(false)
+      await fetchDepartments()
+    } catch (err) {
+      alert(err.message || 'Failed to create department')
+      console.error('Create error:', err)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <AppLayout title="Manage Departments">
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="animate-spin" size={32} />
+        </div>
+      </AppLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <AppLayout title="Manage Departments">
+        <div className="text-red-600 text-center p-6">
+          <AlertCircle className="inline-block mb-2" size={40} />
+          <p>Error: {error}</p>
+          <button onClick={fetchDepartments} className="btn-primary mt-4">
+            Retry
+          </button>
+        </div>
+      </AppLayout>
+    )
   }
 
   return (
@@ -27,39 +88,56 @@ export default function ManageDepartmentsPage() {
       <div className="max-w-2xl mx-auto space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-800">All Departments</h2>
-          <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2">
+          <button
+            onClick={() => setShowAdd(true)}
+            className="btn-primary flex items-center gap-2"
+          >
             <Plus size={15} /> Add Department
           </button>
         </div>
 
         <div className="card overflow-hidden">
           <div className="divide-y divide-slate-100">
-            {depts.map(d => {
-              const isClearance = CLEARANCE_DEPARTMENTS.find(cd => cd.id === d.id)
-              return (
-                <div key={d.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className="w-8 h-8 bg-primary-600/10 rounded-lg flex items-center justify-center text-xs font-bold text-primary-600">
-                    {d.name.charAt(0)}
+            {departments.length === 0 ? (
+              <div className="py-8 text-center text-slate-400">
+                No departments found
+              </div>
+            ) : (
+              departments.map(d => {
+                const isClearance = CLEARANCE_DEPARTMENTS.find(cd => cd.name.toLowerCase() === d.name?.toLowerCase())
+                return (
+                  <div key={d.id} className="flex items-center gap-3 px-5 py-3.5">
+                    <div className="w-8 h-8 bg-primary-600/10 rounded-lg flex items-center justify-center text-xs font-bold text-primary-600">
+                      {d.name?.charAt(0) || '?'}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-slate-800">{d.name}</div>
+                      {isClearance && (
+                        <div className="flex items-center gap-1 text-xs text-green-600 mt-0.5">
+                          <CheckCircle2 size={11} /> Required for no-dues clearance
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        disabled
+                        className="p-1.5 text-slate-400 hover:text-accent-600 hover:bg-accent-50 rounded-lg disabled:opacity-50"
+                        title="Edit (Coming Soon)"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        disabled
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                        title="Delete (Coming Soon)"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-slate-800">{d.name}</div>
-                    {isClearance && (
-                      <div className="flex items-center gap-1 text-xs text-green-600 mt-0.5">
-                        <CheckCircle2 size={11} /> Required for no-dues clearance
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <button className="p-1.5 text-slate-400 hover:text-accent-600 hover:bg-accent-50 rounded-lg" title="Edit">
-                      <Edit2 size={13} />
-                    </button>
-                    <button onClick={() => removeDept(d.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Delete">
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </div>
 
@@ -81,12 +159,31 @@ export default function ManageDepartmentsPage() {
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm animate-fade-in">
               <h3 className="font-bold text-slate-800 mb-4">Add Department</h3>
               <div>
-                <label className="label">Department Name</label>
-                <input type="text" className="input-field" placeholder="e.g. Sports Department" value={newName} onChange={e => setNewName(e.target.value)} />
+                <label className="label">Department Name *</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="e.g. Sports Department"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  disabled={actionLoading}
+                />
               </div>
               <div className="flex gap-3 mt-4">
-                <button onClick={() => setShowAdd(false)} className="btn-secondary flex-1">Cancel</button>
-                <button onClick={addDept} className="btn-primary flex-1">Add</button>
+                <button
+                  onClick={() => setShowAdd(false)}
+                  disabled={actionLoading}
+                  className="btn-secondary flex-1 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddDepartment}
+                  disabled={actionLoading}
+                  className="btn-primary flex-1 disabled:opacity-50"
+                >
+                  {actionLoading ? 'Adding...' : 'Add'}
+                </button>
               </div>
             </div>
           </div>

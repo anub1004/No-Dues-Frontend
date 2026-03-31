@@ -1,31 +1,68 @@
 // src/pages/approver/PendingRequestsPage.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import StatusBadge from '../../components/common/StatusBadge'
 import EmptyState from '../../components/common/EmptyState'
-import { useAuthStore } from '../../store/authStore'
-import { useRequestStore } from '../../store/requestStore'
-import { formatDate } from '../../utils/helpers'
-import { Search } from 'lucide-react'
+import { approverAPI } from '../../services/api'
+import { Search, Loader2 } from 'lucide-react'
 
 export default function PendingRequestsPage() {
-  const { user } = useAuthStore()
-  const { getRequestsByDeptId, getPendingForDept } = useRequestStore()
   const navigate = useNavigate()
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('PENDING')
 
-  const deptId = user?.departmentId
-  const allRequests = getRequestsByDeptId(deptId)
+  useEffect(() => {
+    fetchRequests()
+  }, [])
 
-  const filtered = allRequests.filter(r => {
-    const myStatus = r.departmentStatuses.find(d => d.deptId === deptId)?.status
-    const matchSearch = r.empName.toLowerCase().includes(search.toLowerCase()) ||
+  async function fetchRequests() {
+    try {
+      setLoading(true)
+      const data = await approverAPI.getPendingRequests()
+      setRequests(data || [])
+    } catch (err) {
+      setError(err.message || 'Failed to load requests')
+      console.error('Fetch requests error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filtered = requests.filter(r => {
+    const matchSearch = r.empName?.toLowerCase().includes(search.toLowerCase()) ||
                         r.id.toLowerCase().includes(search.toLowerCase())
-    const matchFilter = filter === 'ALL' || myStatus === filter
+    const matchFilter = filter === 'ALL' || r.overallStatus === filter
     return matchSearch && matchFilter
   })
+
+  if (loading) {
+    return (
+      <AppLayout title="Pending Requests">
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="animate-spin" size={32} />
+        </div>
+      </AppLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <AppLayout title="Pending Requests">
+        <div className="text-red-600 text-center p-6">
+          <p>Error: {error}</p>
+          <button
+            onClick={fetchRequests}
+            className="btn-primary mt-4"
+          >
+            Retry
+          </button>
+        </div>
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout title="Pending Requests">
@@ -72,33 +109,38 @@ export default function PendingRequestsPage() {
                 <div className="col-span-1">Action</div>
               </div>
               <div className="divide-y divide-slate-100">
-                {filtered.map(req => {
-                  const myStatus = req.departmentStatuses.find(d => d.deptId === deptId)?.status
-                  return (
-                    <div
-                      key={req.id}
-                      onClick={() => navigate(`/approver/requests/${req.id}`)}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-2 px-5 py-4 hover:bg-slate-50 cursor-pointer transition-all items-center"
-                    >
-                      <div className="col-span-3 flex items-center gap-2">
-                        <div className="w-8 h-8 bg-primary-600/10 rounded-lg flex items-center justify-center text-xs font-bold text-primary-600">
-                          {req.empName.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-slate-800">{req.empName}</div>
-                          <div className="text-xs text-slate-400">{req.empCode}</div>
-                        </div>
+                {filtered.map(req => (
+                  <div
+                    key={req.id}
+                    onClick={() => navigate(`/approver/requests/${req.id}`)}
+                    className="grid grid-cols-1 md:grid-cols-12 gap-2 px-5 py-4 hover:bg-slate-50 cursor-pointer transition-all items-center"
+                  >
+                    <div className="col-span-3 flex items-center gap-2">
+                      <div className="w-8 h-8 bg-primary-600/10 rounded-lg flex items-center justify-center text-xs font-bold text-primary-600">
+                        {req.empName?.charAt(0) || '?'}
                       </div>
-                      <div className="col-span-2 font-mono text-xs text-slate-600">{req.id}</div>
-                      <div className="col-span-2 text-xs text-slate-500">{formatDate(req.submittedAt)}</div>
-                      <div className="col-span-2 text-xs text-slate-600">{req.reason}</div>
-                      <div className="col-span-2"><StatusBadge status={myStatus} /></div>
-                      <div className="col-span-1">
-                        <span className="text-accent-600 text-xs font-bold">Review →</span>
+                      <div>
+                        <div className="text-sm font-semibold text-slate-800">{req.empName}</div>
+                        <div className="text-xs text-slate-400">{req.empCode}</div>
                       </div>
                     </div>
-                  )
-                })}
+                    <div className="col-span-2 font-mono text-xs text-slate-600">{req.id}</div>
+                    <div className="col-span-2 text-xs text-slate-500">{req.submittedAt}</div>
+                    <div className="col-span-2 text-xs text-slate-600">{req.reason}</div>
+                    <div className="col-span-2">
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                        req.overallStatus === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                        req.overallStatus === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>
+                        {req.overallStatus}
+                      </span>
+                    </div>
+                    <div className="col-span-1">
+                      <span className="text-accent-600 text-xs font-bold">Review →</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           )}

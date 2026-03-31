@@ -1,8 +1,9 @@
 // src/components/layout/TopNavbar.jsx
 import { useState } from 'react'
-import { Menu, Bell, ChevronDown, User, KeyRound, LogOut } from 'lucide-react'
+import { Menu, Bell, ChevronDown, User, KeyRound, LogOut, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { NavLink} from 'react-router-dom'
 
 export default function TopNavbar({ onMenuClick, title }) {
   const { user, logout } = useAuthStore()
@@ -60,10 +61,10 @@ export default function TopNavbar({ onMenuClick, title }) {
                   <div className="text-sm font-bold text-slate-900">{user?.name}</div>
                   <div className="text-xs text-slate-500 mt-1">{user?.email}</div>
                 </div>
-                <button className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-all">
+                <button className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-all"       onClick={() => navigate('/profile')}>
                   <User size={14} /> Profile
                 </button>
-                <button className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-all">
+                <button className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-all"    onClick={() => navigate('/settings')}>
                   <KeyRound size={14} /> Change Password
                 </button>
                 <div className="border-t border-slate-100 mt-2 pt-2">

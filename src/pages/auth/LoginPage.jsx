@@ -1,8 +1,9 @@
 // src/pages/auth/LoginPage.jsx
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { DEMO_USERS } from '../../constants/mockData'
+import { authAPI } from '../../services/api'
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 const ROLE_REDIRECTS = {
@@ -89,12 +90,18 @@ export default function LoginPage() {
     if (eE || pE) return
 
     setLoading(true)
-    setTimeout(() => {
-      const found = DEMO_USERS.find(u => u.empId === empId.trim() && u.password === password)
-      if (found) { login(found); navigate(ROLE_REDIRECTS[found.role]) }
-      else setError('No account found with these credentials. Please try again.')
-      setLoading(false)
-    }, 700)
+    authAPI.login(empId.trim(), password)
+      .then(response => {
+        // Response should have: token, id, empId, name, email, role, department, departmentId, designation
+        login(response, response.token)
+        navigate(ROLE_REDIRECTS[response.role])
+      })
+      .catch(err => {
+        setError(err.message || 'Login failed. Please try again.')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }
 
   function fillDemo(user) {
@@ -351,7 +358,7 @@ export default function LoginPage() {
                   <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}/>
                   Remember me
                 </label>
-                <button type="button" className="lp-forgot">Forgot Password?</button>
+                <Link to="/forgot-password" className="lp-forgot">Forgot Password?</Link>
               </div>
 
               {/* Server error */}

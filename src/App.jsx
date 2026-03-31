@@ -4,6 +4,11 @@ import { PrivateRoute, PublicOnlyRoute } from './routes/AppRouter'
 
 // Auth
 import LoginPage from './pages/auth/LoginPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+
+// Profile
+import ProfilePage from './pages/profile/ProfilePage'
+import SettingsPage from './pages/profile/SettingsPage'
 
 // Employee
 import EmployeeDashboard from './pages/employee/EmployeeDashboard'
@@ -36,6 +41,13 @@ export default function App() {
         {/* Public routes (redirect if already logged in) */}
         <Route element={<PublicOnlyRoute />}>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        </Route>
+
+        {/* Profile routes (all authenticated roles) */}
+        <Route element={<PrivateRoute allowedRoles={['EMPLOYEE', 'HOD', 'ADMIN']} />}>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
         {/* Employee routes */}
@@ -72,3 +84,4 @@ export default function App() {
     </BrowserRouter>
   )
 }
+

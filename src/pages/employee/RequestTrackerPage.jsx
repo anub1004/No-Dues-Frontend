@@ -1,37 +1,94 @@
 // src/pages/employee/RequestTrackerPage.jsx
 import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
-import Accordion from '../../components/common/Accordion'
-import StatusBadge from '../../components/common/StatusBadge'
-import DetailsCard from '../../components/common/DetailsCard'
-import { useRequestStore } from '../../store/requestStore'
-import { formatDate, getProgressCount, renderAccordionContent } from '../../utils/helpers'
-import { ArrowLeft, Download, Calendar, User, Briefcase, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import FileUploadSection from '../../components/FileUploadSection'
+import { employeeAPI } from '../../services/api'
+import { ArrowLeft, Download, Calendar, User, Briefcase, FileText, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react'
 
 export default function RequestTrackerPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { requests } = useRequestStore()
+  const [request, setRequest] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const req = requests.find(r => r.id === id)
+  useEffect(() => {
+    console.log('[RequestTracker] Params ID:', id)
+    if (id) {
+      fetchRequest()
+    } else {
+      setError('Request ID not found in URL')
+      setLoading(false)
+    }
+  }, [id])
 
-  if (!req) {
+  async function fetchRequest() {
+    try {
+      setLoading(true)
+      setError('')
+      console.log('[RequestTracker] Fetching request:', id)
+      const data = await employeeAPI.getRequestById(id)
+      console.log('[RequestTracker] Request data received:', data)
+      setRequest(data)
+    } catch (err) {
+      console.error('[RequestTracker] Fetch error:', err)
+      const errorMsg = err.data?.message || err.message || 'Failed to load request'
+      setError(errorMsg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
     return (
-      <AppLayout title="Request Not Found">
-        <div className="text-center py-16">
-          <div className="text-5xl mb-4">🔍</div>
-          <h3 className="text-lg font-bold text-slate-700">Request not found</h3>
-          <button onClick={() => navigate(-1)} className="btn-secondary mt-4">Go Back</button>
+      <AppLayout title="Loading...">
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="animate-spin" size={32} />
         </div>
       </AppLayout>
     )
   }
 
-  const { approved, total } = getProgressCount(req.departmentStatuses)
-  const pct = Math.round((approved / total) * 100)
+  if (error || !request) {
+    return (
+      <AppLayout title="Request Not Found">
+        <div className="max-w-2xl mx-auto">
+          {/* Back button */}
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-4">
+            <ArrowLeft size={16} /> Back to Requests
+          </button>
+
+          {/* Error card */}
+          <div className="card p-8">
+            <div className="text-center">
+              <div className="text-5xl mb-4">🔍</div>
+              <h3 className="text-lg font-bold text-slate-700 mb-2">{error || 'Request not found'}</h3>
+              {error && (
+                <p className="text-sm text-slate-600 mb-4 bg-slate-50 p-3 rounded border border-slate-200">
+                  {error}
+                </p>
+              )}
+              <button
+                onClick={fetchRequest}
+                className="btn-primary mt-4"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    )
+  }
+
+  const approvalSteps = request.approvalSteps || []
+  const approved = approvalSteps.filter(s => s.status === 'APPROVED').length
+  const total = approvalSteps.length || 1
+  const pct = total > 0 ? Math.round((approved / total) * 100) : 0
 
   return (
-    <AppLayout title={`Request ${req.id}`}>
+    <AppLayout title={`Request ${request.id}`}>
       <div className="max-w-2xl mx-auto space-y-5">
         {/* Back button */}
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700">
@@ -42,18 +99,24 @@ export default function RequestTrackerPage() {
         <div className="card p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <div className="font-mono text-lg font-bold text-slate-800">{req.id}</div>
-              <div className="text-sm text-slate-500 mt-0.5">Submitted {formatDate(req.submittedAt)}</div>
+              <div className="font-mono text-lg font-bold text-slate-800">{request.id}</div>
+              <div className="text-sm text-slate-500 mt-0.5">Submitted {request.submittedAt}</div>
             </div>
-            <StatusBadge status={req.overallStatus} />
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              request.overallStatus === 'APPROVED' ? 'bg-green-100 text-green-800' :
+              request.overallStatus === 'REJECTED' ? 'bg-red-100 text-red-800' :
+              'bg-amber-100 text-amber-800'
+            }`}>
+              {request.overallStatus}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-xs mb-4">
             {[
-              [User, 'Employee', req.empName],
-              [Briefcase, 'Designation', req.designation],
-              [FileText, 'Reason', req.reason],
-              [Calendar, 'Last Day', formatDate(req.lastWorkingDay) || '—'],
+              [User, 'Employee', request.empName],
+              [Briefcase, 'Department', request.department],
+              [FileText, 'Reason', request.reason],
+              [Calendar, 'Last Day', request.lastWorkingDay || '—'],
             ].map(([Icon, label, value]) => (
               <div key={label} className="flex items-start gap-2">
                 <Icon size={13} className="text-slate-400 mt-0.5 flex-shrink-0" />
@@ -66,26 +129,28 @@ export default function RequestTrackerPage() {
           </div>
 
           {/* Overall progress */}
-          <div>
-            <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-slate-500 font-semibold">Overall Progress</span>
-              <span className="font-bold text-slate-700">{approved} of {total} departments cleared</span>
+          {total > 0 && (
+            <div>
+              <div className="flex justify-between text-xs mb-1.5">
+                <span className="text-slate-500 font-semibold">Overall Progress</span>
+                <span className="font-bold text-slate-700">{approved} of {total} cleared</span>
+              </div>
+              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    request.overallStatus === 'REJECTED' ? 'bg-red-500' :
+                    request.overallStatus === 'APPROVED' ? 'bg-green-500' : 'bg-amber-500'
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <div className="text-xs text-slate-400 mt-1">{pct}% complete</div>
             </div>
-            <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${
-                  req.overallStatus === 'REJECTED' ? 'bg-red-500' :
-                  req.overallStatus === 'APPROVED' ? 'bg-green-500' : 'bg-accent-500'
-                }`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <div className="text-xs text-slate-400 mt-1">{pct}% complete</div>
-          </div>
+          )}
         </div>
 
         {/* Certificate download (if all approved) */}
-        {req.overallStatus === 'APPROVED' && (
+        {request.overallStatus === 'APPROVED' && (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center justify-between">
             <div>
               <div className="font-bold text-green-800 text-sm">🎉 No-Dues Certificate Ready!</div>
@@ -101,56 +166,56 @@ export default function RequestTrackerPage() {
         )}
 
         {/* Rejection alert */}
-        {req.overallStatus === 'REJECTED' && (
+        {request.overallStatus === 'REJECTED' && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
             <div className="font-bold text-red-800 text-sm mb-1">❌ Request Rejected</div>
             <div className="text-red-600 text-xs">
-              {req.departmentStatuses.filter(d => d.status === 'REJECTED').map(d => (
-                <div key={d.deptId}><strong>{d.deptName}:</strong> {d.remarks}</div>
-              ))}
+              Some departments have rejected your request. Please review and resubmit if needed.
             </div>
           </div>
         )}
 
-        {/* Department-wise timeline */}
-        <div className="card">
-          <div className="px-6 py-4 border-b border-slate-200">
-            <h3 className="section-title">Department-wise Clearance Status</h3>
-          </div>
-          <Accordion
-            items={req.departmentStatuses.map((status, idx) => {
-              const StatusIcon =
-                status.status === 'APPROVED' ? CheckCircle2 :
-                status.status === 'REJECTED' ? XCircle :
-                Clock
-
-              return {
-                id: `dept-${idx}`,
-                title: status.deptName,
-                subtitle: `Status: ${status.status}`,
-                icon: StatusIcon,
-                content: renderAccordionContent(status),
-              }
-            })}
-            containerClass="!rounded-none"
-          />
-        </div>
-
-        {/* Documents */}
-        {req.documents?.length > 0 && (
-          <div className="card p-5">
-            <h3 className="section-title mb-3">Attached Documents</h3>
-            <div className="space-y-2">
-              {req.documents.map((doc, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-xl px-3 py-2">
-                  <FileText size={14} className="text-accent-600" />
-                  <span className="flex-1">{doc}</span>
-                  <span className="text-xs text-slate-400">PDF</span>
+        {/* Approval steps timeline */}
+        {approvalSteps.length > 0 && (
+          <div className="card">
+            <div className="px-6 py-4 border-b border-slate-200">
+              <h3 className="section-title">Clearance Status</h3>
+            </div>
+            <div className="divide-y">
+              {approvalSteps.map((step, idx) => (
+                <div key={idx} className="p-4 flex items-start gap-3">
+                  {step.status === 'APPROVED' ? (
+                    <CheckCircle2 size={16} className="text-green-500 mt-0.5" />
+                  ) : step.status === 'REJECTED' ? (
+                    <XCircle size={16} className="text-red-500 mt-0.5" />
+                  ) : (
+                    <Clock size={16} className="text-amber-500 mt-0.5" />
+                  )}
+                  <div className="flex-1">
+                    <div className="font-semibold text-slate-700">{step.departmentName}</div>
+                    <div className="text-sm text-slate-500">{step.status}</div>
+                    {step.remarks && <div className="text-xs text-slate-600 mt-1">{step.remarks}</div>}
+                    {step.approvedBy && <div className="text-xs text-slate-400 mt-1">By {step.approvedBy}</div>}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* File upload section */}
+        <div className="card">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h3 className="section-title">Documents</h3>
+          </div>
+          <div className="p-6">
+            <FileUploadSection
+              requestId={request.id}
+              isEditable={request.overallStatus === 'PENDING' || request.overallStatus === 'IN_PROGRESS'}
+              onFileChange={fetchRequest}
+            />
+          </div>
+        </div>
       </div>
     </AppLayout>
   )
