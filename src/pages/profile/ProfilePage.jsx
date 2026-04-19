@@ -191,11 +191,11 @@ export default function ProfilePage() {
             <div>
               <label className="label">Account Status</label>
               <div className={`p-3 rounded-lg font-medium ${
-                profile?.isActive
+                profile?.active
                   ? 'bg-green-50 text-green-700'
                   : 'bg-red-50 text-red-700'
               }`}>
-                {profile?.isActive ? '✓ Active' : '✗ Deactivated'}
+                {profile?.active ? '✓ Active' : '✗ Deactivated'}
               </div>
             </div>
           </div>
