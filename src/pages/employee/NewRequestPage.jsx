@@ -21,42 +21,35 @@ export default function NewRequestPage() {
   const [requestId, setRequestId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [pendingFiles, setPendingFiles] = useState(null) // Store files temporarily
 
-  // Step 0→1: Submit details to create request
-  async function handleCreateRequest() {
+  // Step 0→1: Just move to next step, don't create request yet
+  async function handleNextToUpload() {
+    setError('')
+    setStep(1)
+  }
+
+  // Step 2→3: Final submission - NOW create the request
+  async function handleFinalSubmit() {
     try {
       setError('')
       setLoading(true)
 
+      // Create request with all data at final submission
       const response = await employeeAPI.submitRequest({
         reason,
         lastWorkingDay: lastDay,
         remarks
       })
 
-      console.log('[NewRequest] Request created:', response.id)
+      console.log('[NewRequest] Request created at final submission:', response.id)
       setRequestId(response.id)
-      setStep(1) // Go to upload documents step
-    } catch (err) {
-      setError(err.message || 'Failed to create request')
-      console.error('Create request error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Step 2→3: Final submission (with files already uploaded)
-  async function handleFinalSubmit() {
-    try {
-      setError('')
-      setLoading(true)
-      // Final confirmation that files are uploaded
-      setSubmitted(requestId)
+      setSubmitted(response.id)
       setStep(3) // Go to success step
 
       // Redirect after 3 seconds
       setTimeout(() => {
-        navigate(`/employee/requests/${requestId}`)
+        navigate(`/employee/requests/${response.id}`)
       }, 3000)
     } catch (err) {
       setError(err.message || 'Failed to submit')
@@ -64,6 +57,12 @@ export default function NewRequestPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Step 1→2: Just move to review, don't do anything else
+  async function handleNextToReview() {
+    setError('')
+    setStep(2)
   }
 
   return (
@@ -167,7 +166,7 @@ export default function NewRequestPage() {
 
               <div className="flex justify-end">
                 <button
-                  onClick={handleCreateRequest}
+                  onClick={handleNextToUpload}
                   disabled={!reason || loading}
                   className="btn-primary flex items-center gap-2"
                 >
@@ -178,7 +177,7 @@ export default function NewRequestPage() {
           )}
 
           {/* Step 1: Upload Documents */}
-          {step === 1 && requestId && (
+          {step === 1 && (
             <div className="space-y-4 animate-fade-in">
               <h2 className="text-lg font-bold text-slate-800 mb-4">Upload Supporting Documents</h2>
 
@@ -187,30 +186,23 @@ export default function NewRequestPage() {
                   <Upload size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm">
                     <p className="font-semibold text-blue-900">Upload documents (optional)</p>
-                    <p className="text-blue-700 text-xs mt-1">You can upload any supporting documents like ID proof, work certificates, or other relevant files. These will be visible to the departments during approval.</p>
+                    <p className="text-blue-700 text-xs mt-1">You can upload any supporting documents like ID proof, work certificates, or other relevant files. These will be attached when you submit the final request.</p>
                   </div>
                 </div>
               </div>
 
-              {/* File Upload Section */}
-              <div className="bg-slate-50 rounded-lg p-4">
-                <FileUploadSection
-                  requestId={requestId}
-                  isEditable={true}
-                  onFileChange={() => {
-                    console.log('[NewRequest] Files updated for request:', requestId)
-                  }}
-                />
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+                <strong>Note:</strong> Documents will be attached to your request when you submit at the final step.
               </div>
 
               <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
-                <strong>Tip:</strong> You can add more documents later from your request details page if needed.
+                <strong>Tip:</strong> You can also add more documents later from your request details page after submission if needed.
               </div>
 
               <div className="flex justify-between">
                 <button
                   onClick={() => {
-                    setRequestId(null)
+                    setPendingFiles(null)
                     setStep(0)
                   }}
                   className="btn-secondary flex items-center gap-2"
@@ -218,7 +210,7 @@ export default function NewRequestPage() {
                   <ChevronLeft size={15} /> Back
                 </button>
                 <button
-                  onClick={() => setStep(2)}
+                  onClick={handleNextToReview}
                   className="btn-primary flex items-center gap-2"
                 >
                   Next: Review <ChevronRight size={15} />
@@ -253,7 +245,6 @@ export default function NewRequestPage() {
                   ['Reason', reason],
                   ['Last Working Day', lastDay || 'Not specified'],
                   ['Remarks', remarks || '—'],
-                  ['Request ID', requestId],
                 ].map(([l, v]) => (
                   <div key={l} className="flex justify-between text-sm">
                     <span className="text-slate-500">{l}</span>

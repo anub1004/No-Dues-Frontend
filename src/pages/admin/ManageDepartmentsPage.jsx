@@ -17,6 +17,9 @@ export default function ManageDepartmentsPage() {
   const [departments, setDepartments] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newType, setNewType] = useState('BRANCH')
+  const [newHodName, setNewHodName] = useState('')
+  const [newHodEmail, setNewHodEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -47,8 +50,16 @@ export default function ManageDepartmentsPage() {
 
     try {
       setActionLoading(true)
-      await adminAPI.createDepartment({ name: newName.trim() })
+      await adminAPI.createDepartment({
+        name: newName.trim(),
+        type: newType,
+        hodName: newHodName.trim() || null,
+        hodEmail: newHodEmail.trim() || null
+      })
       setNewName('')
+      setNewType('BRANCH')
+      setNewHodName('')
+      setNewHodEmail('')
       setShowAdd(false)
       await fetchDepartments()
     } catch (err) {
@@ -112,10 +123,22 @@ export default function ManageDepartmentsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-slate-800">{d.name}</div>
-                      {isClearance && (
-                        <div className="flex items-center gap-1 text-xs text-green-600 mt-0.5">
-                          <CheckCircle2 size={11} /> Required for no-dues clearance
-                        </div>
+                      <div className="flex gap-2 mt-0.5">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          d.type === 'HR' ? 'bg-red-100 text-red-700' :
+                          d.type === 'CLEARANCE' ? 'bg-green-100 text-green-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {d.type || 'BRANCH'}
+                        </span>
+                        {isClearance && (
+                          <span className="text-xs text-green-600 flex items-center gap-1">
+                            <CheckCircle2 size={11} /> Required
+                          </span>
+                        )}
+                      </div>
+                      {d.hodName && (
+                        <div className="text-xs text-slate-500 mt-1">HOD: {d.hodName} ({d.hodEmail})</div>
                       )}
                     </div>
                     <div className="flex gap-1">
@@ -158,20 +181,63 @@ export default function ManageDepartmentsPage() {
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm animate-fade-in">
               <h3 className="font-bold text-slate-800 mb-4">Add Department</h3>
-              <div>
-                <label className="label">Department Name *</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="e.g. Sports Department"
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  disabled={actionLoading}
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="label">Department Name *</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="e.g. HR Department"
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
+                    disabled={actionLoading}
+                  />
+                </div>
+                <div>
+                  <label className="label">Department Type *</label>
+                  <select
+                    className="input-field"
+                    value={newType}
+                    onChange={e => setNewType(e.target.value)}
+                    disabled={actionLoading}
+                  >
+                    <option value="BRANCH">Branch (User's Department)</option>
+                    <option value="HR">HR (Required for all requests)</option>
+                    <option value="CLEARANCE">Clearance (Finance, Library, etc.)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">HOD Name</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="e.g. John Doe"
+                    value={newHodName}
+                    onChange={e => setNewHodName(e.target.value)}
+                    disabled={actionLoading}
+                  />
+                </div>
+                <div>
+                  <label className="label">HOD Email</label>
+                  <input
+                    type="email"
+                    className="input-field"
+                    placeholder="e.g. hod@company.com"
+                    value={newHodEmail}
+                    onChange={e => setNewHodEmail(e.target.value)}
+                    disabled={actionLoading}
+                  />
+                </div>
               </div>
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-3 mt-6">
                 <button
-                  onClick={() => setShowAdd(false)}
+                  onClick={() => {
+                    setShowAdd(false)
+                    setNewName('')
+                    setNewType('BRANCH')
+                    setNewHodName('')
+                    setNewHodEmail('')
+                  }}
                   disabled={actionLoading}
                   className="btn-secondary flex-1 disabled:opacity-50"
                 >

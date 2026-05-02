@@ -1,8 +1,8 @@
 // src/pages/admin/ReportsPage.jsx
 import { useEffect, useState } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
-import { adminAPI } from '../../services/api'
-import { Download, TrendingUp, BarChart3, FileDown, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { adminAPI, exportAPI } from '../../services/api'
+import { Download, TrendingUp, BarChart3, FileDown, Loader2, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react'
 
 export default function ReportsPage() {
   const [reports, setReports] = useState(null)
@@ -10,6 +10,7 @@ export default function ReportsPage() {
   const [error, setError] = useState('')
   const [exporting, setExporting] = useState(false)
   const [exportSuccess, setExportSuccess] = useState('')
+  const [showExportMenu, setShowExportMenu] = useState(false)
 
   useEffect(() => {
     fetchReports()
@@ -32,35 +33,38 @@ export default function ReportsPage() {
   async function handleExport(type) {
     try {
       setExporting(true)
-      const endpoint = `/api/export/${type}/csv`
-      const token = localStorage.getItem('token')
+      setShowExportMenu(false)
 
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      let exportFn
+      let fileName
 
-      if (!response.ok) {
-        throw new Error('Export failed')
+      switch (type) {
+        case 'requests':
+          exportFn = exportAPI.exportRequestsCSV
+          fileName = 'requests'
+          break
+        case 'employees':
+          exportFn = exportAPI.exportEmployeesCSV
+          fileName = 'employees'
+          break
+        case 'audit-logs':
+          exportFn = exportAPI.exportAuditLogsCSV
+          fileName = 'audit_logs'
+          break
+        case 'analytics':
+          exportFn = exportAPI.exportAnalyticsCSV
+          fileName = 'analytics'
+          break
+        default:
+          throw new Error('Unknown export type')
       }
 
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${type}_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      setExportSuccess(`${type} exported successfully!`)
+      await exportFn()
+      setExportSuccess(`✓ ${type.replace('-', ' ')} exported successfully!`)
       setTimeout(() => setExportSuccess(''), 3000)
     } catch (err) {
-      setError('Export failed: ' + err.message)
+      setError('Export failed: ' + (err.message || 'Unknown error'))
+      console.error('Export error:', err)
     } finally {
       setExporting(false)
     }
@@ -119,29 +123,46 @@ export default function ReportsPage() {
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
-            <div className="relative inline-block">
+            <div className="relative">
               <button
                 className="btn-secondary flex items-center gap-2 text-sm"
+                onClick={() => setShowExportMenu(!showExportMenu)}
                 disabled={exporting}
               >
-                <FileDown size={15} /> Export
+                <FileDown size={15} /> Export <ChevronDown size={14} />
               </button>
-              <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
-                <button
-                  className="block w-full text-left px-4 py-2 hover:bg-slate-50 text-sm"
-                  onClick={() => handleExport('requests')}
-                  disabled={exporting}
-                >
-                  📊 Export Requests
-                </button>
-                <button
-                  className="block w-full text-left px-4 py-2 hover:bg-slate-50 text-sm"
-                  onClick={() => handleExport('analytics')}
-                  disabled={exporting}
-                >
-                  📈 Export Analytics
-                </button>
-              </div>
+              {showExportMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-slate-50 text-sm border-b border-slate-100"
+                    onClick={() => handleExport('requests')}
+                    disabled={exporting}
+                  >
+                    📊 Export Requests
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-slate-50 text-sm border-b border-slate-100"
+                    onClick={() => handleExport('employees')}
+                    disabled={exporting}
+                  >
+                    👥 Export Employees
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-slate-50 text-sm border-b border-slate-100"
+                    onClick={() => handleExport('audit-logs')}
+                    disabled={exporting}
+                  >
+                    📋 Export Audit Logs
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-slate-50 text-sm"
+                    onClick={() => handleExport('analytics')}
+                    disabled={exporting}
+                  >
+                    📈 Export Analytics
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

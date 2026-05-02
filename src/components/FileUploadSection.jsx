@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { uploadFile, getRequestFiles, deleteFile } from '../services/api'
+import { uploadFile, getRequestFiles, deleteFile, downloadFile } from '../services/api'
 
 export default function FileUploadSection({ requestId, isEditable = true, onFileChange }) {
   const [files, setFiles] = useState([])
@@ -87,6 +87,15 @@ export default function FileUploadSection({ requestId, isEditable = true, onFile
     }
   }
 
+  const handleDownloadFile = async (fileName) => {
+    try {
+      await downloadFile(fileName, requestId)
+    } catch (err) {
+      console.error('Download error:', err)
+      setError('Failed to download file: ' + (err.message || 'Unknown error'))
+    }
+  }
+
   const handleDeleteFile = async (fileName) => {
     if (!window.confirm('Are you sure you want to delete this file?')) {
       return
@@ -156,15 +165,7 @@ export default function FileUploadSection({ requestId, isEditable = true, onFile
               className="hidden"
               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
             />
-            <div className="text-center">
-              <span className="text-2xl mb-2">📤</span>
-              <p className="text-gray-700 font-medium">
-                {uploading ? 'Uploading...' : 'Click to upload or drag and drop'}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                PDF, Images, Word, Excel (Max 10MB each)
-              </p>
-            </div>
+          Upload Files
           </label>
 
           {/* Upload Progress */}
@@ -213,14 +214,14 @@ export default function FileUploadSection({ requestId, isEditable = true, onFile
 
                 <div className="flex gap-2 ml-2">
                   {/* Download Button */}
-                  <a
-                    href={`/api/upload/request/${requestId}/file/${fileName}`}
-                    download
-                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition"
+                  <button
+                    onClick={() => handleDownloadFile(fileName)}
+                    disabled={loading}
+                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition disabled:opacity-50"
                     title="Download file"
                   >
                     ⬇️
-                  </a>
+                  </button>
 
                   {/* Delete Button */}
                   {isEditable && (

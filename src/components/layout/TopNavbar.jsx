@@ -4,11 +4,25 @@ import { Menu, Bell, ChevronDown, User, KeyRound, LogOut, Settings } from 'lucid
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { NavLink} from 'react-router-dom'
+import { useNotifications } from '../../hooks/useNotifications'
+import NotificationPanel from '../NotificationPanel'
 
 export default function TopNavbar({ onMenuClick, title }) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [notificationPanelOpen, setNotificationPanelOpen] = useState(false)
+
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications
+  } = useNotifications()
 
   function handleLogout() {
     logout()
@@ -32,10 +46,31 @@ export default function TopNavbar({ onMenuClick, title }) {
 
       <div className="flex items-center gap-1">
         {/* Notification bell */}
-        <button className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-all">
-          <Bell size={18} />
-          <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold leading-none">3</span>
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setNotificationPanelOpen(!notificationPanelOpen)}
+            className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-all"
+          >
+            <Bell size={18} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          <NotificationPanel
+            notifications={notifications}
+            isOpen={notificationPanelOpen}
+            onClose={() => setNotificationPanelOpen(false)}
+            onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
+            onDelete={deleteNotification}
+            onDeleteAll={deleteAllNotifications}
+            error={error}
+            loading={loading}
+          />
+        </div>
 
         {/* User dropdown */}
         <div className="relative">

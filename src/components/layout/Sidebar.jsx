@@ -467,7 +467,7 @@ export default function Sidebar({ onClose }) {
             <div className="sidebar-avatar">{initials}</div>
             <div className="sidebar-user-info">
               <div className="sidebar-user-name">{user?.name}</div>
-              <div className="sidebar-user-role">{user?.role}</div>
+              <div className="sidebar-user-role">{user?.department}</div>
             </div>
           </button>
 

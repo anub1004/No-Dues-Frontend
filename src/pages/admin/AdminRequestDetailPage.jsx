@@ -53,7 +53,7 @@ export default function AdminRequestDetailPage() {
     )
   }
 
-  const approvalSteps = request.approvalSteps || []
+  const approvalSteps = request.departmentStatuses || []
   const approved = approvalSteps.filter(s => s.status === 'APPROVED').length
   const total = approvalSteps.length || 1
   const pct = total > 0 ? Math.round((approved / total) * 100) : 0
@@ -146,7 +146,7 @@ export default function AdminRequestDetailPage() {
                     <Clock size={16} className="text-amber-500 mt-0.5" />
                   )}
                   <div className="flex-1">
-                    <div className="font-semibold text-slate-700">{step.departmentName || 'Department'}</div>
+                    <div className="font-semibold text-slate-700">{step.deptName || 'Department'}</div>
                     <div className="text-sm text-slate-500">{step.status}</div>
                     {step.remarks && <div className="text-xs text-slate-600 mt-1">{step.remarks}</div>}
                     {step.approvedBy && <div className="text-xs text-slate-400 mt-1">By {step.approvedBy}</div>}

@@ -6,10 +6,10 @@ import { Search, Plus, Edit2, UserX, Shield, User, Loader2, AlertCircle } from '
 
 const ROLE_COLOR = { EMPLOYEE: 'blue', HOD: 'purple', ADMIN: 'red' }
 const ROLE_ICON = { EMPLOYEE: User, HOD: Shield, ADMIN: Shield }
-const DEPARTMENTS = ['HR', 'Finance', 'IT', 'Operations', 'Administration', 'Library']
 
 export default function ManageEmployeesPage() {
   const [employees, setEmployees] = useState([])
+  const [departments, setDepartments] = useState([])
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('ALL')
   const [showAdd, setShowAdd] = useState(false)
@@ -24,13 +24,34 @@ export default function ManageEmployeesPage() {
     email: '',
     designation: '',
     role: 'EMPLOYEE',
-    department: DEPARTMENTS[0],
+    department: '',
+    departmentId: null,
     password: ''
   })
 
   useEffect(() => {
     fetchEmployees()
+    fetchDepartments()
   }, [])
+
+  async function fetchDepartments() {
+    try {
+      const data = await adminAPI.getDepartments()
+      setDepartments(data || [])
+      // Set default department to first BRANCH type or first available
+      if (data && data.length > 0) {
+        const branchDept = data.find(d => d.type === 'BRANCH')
+        const defaultDept = branchDept || data[0]
+        setFormData(prev => ({
+          ...prev,
+          department: defaultDept.name,
+          departmentId: defaultDept.id
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to fetch departments:', err)
+    }
+  }
 
   async function fetchEmployees() {
     try {
@@ -47,14 +68,24 @@ export default function ManageEmployeesPage() {
   }
 
   async function handleAddEmployee() {
-    if (!formData.name || !formData.empId || !formData.email) {
+    if (!formData.name || !formData.empId || !formData.email || !formData.department) {
       alert('Please fill in all required fields')
       return
     }
 
     try {
       setActionLoading(true)
-      await adminAPI.createEmployee(formData)
+      const payload = {
+        name: formData.name,
+        empId: formData.empId,
+        email: formData.email,
+        designation: formData.designation,
+        role: formData.role,
+        department: formData.department,
+        departmentId: formData.departmentId, // Include departmentId
+        password: formData.password || ''
+      }
+      await adminAPI.createEmployee(payload)
       setShowAdd(false)
       setFormData({
         name: '',
@@ -62,7 +93,8 @@ export default function ManageEmployeesPage() {
         email: '',
         designation: '',
         role: 'EMPLOYEE',
-        department: DEPARTMENTS[0],
+        department: '',
+        departmentId: null,
         password: ''
       })
       await fetchEmployees()
@@ -282,6 +314,7 @@ export default function ManageEmployeesPage() {
                       <option value="EMPLOYEE">EMPLOYEE</option>
                       <option value="HOD">HOD</option>
                       <option value="ADMIN">ADMIN</option>
+                      
                     </select>
                   </div>
                 </div>
@@ -290,10 +323,20 @@ export default function ManageEmployeesPage() {
                   <select
                     className="input-field"
                     value={formData.department}
-                    onChange={e => setFormData({...formData, department: e.target.value})}
+                    onChange={e => {
+                      const selected = departments.find(d => d.name === e.target.value)
+                      setFormData({
+                        ...formData,
+                        department: e.target.value,
+                        departmentId: selected?.id || null
+                      })
+                    }}
                   >
-                    {DEPARTMENTS.map(d => (
-                      <option key={d}>{d}</option>
+                    <option value="">-- Select Department --</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.name}>
+                        {d.name} ({d.type})
+                      </option>
                     ))}
                   </select>
                 </div>

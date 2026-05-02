@@ -1,8 +1,9 @@
 // src/pages/employee/RequestTrackerPage.jsx
 import { useParams, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
 import FileUploadSection from '../../components/FileUploadSection'
+import CertificateDownload from '../../components/CertificateDownload'
 import { employeeAPI } from '../../services/api'
 import { ArrowLeft, Download, Calendar, User, Briefcase, FileText, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react'
 
@@ -12,6 +13,8 @@ export default function RequestTrackerPage() {
   const [request, setRequest] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [certificateGenerating, setCertificateGenerating] = useState(false)
+  const pollIntervalRef = useRef(null)
 
   useEffect(() => {
     console.log('[RequestTracker] Params ID:', id)
@@ -21,7 +24,53 @@ export default function RequestTrackerPage() {
       setError('Request ID not found in URL')
       setLoading(false)
     }
+
+    // Cleanup polling on unmount
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
   }, [id])
+
+  // Poll for certificate generation if status is APPROVED but certificatePath is missing
+  useEffect(() => {
+    if (request?.overallStatus === 'APPROVED' && !request?.certificatePath) {
+      setCertificateGenerating(true)
+
+      // Start polling every 3 seconds for up to 30 seconds
+      let pollCount = 0
+      const maxPolls = 10
+
+      pollIntervalRef.current = setInterval(async () => {
+        pollCount++
+        try {
+          const data = await employeeAPI.getRequestById(id)
+          if (data.certificatePath) {
+            console.log('[RequestTracker] Certificate path received:', data.certificatePath)
+            setRequest(data)
+            setCertificateGenerating(false)
+            clearInterval(pollIntervalRef.current)
+          } else if (pollCount >= maxPolls) {
+            console.warn('[RequestTracker] Certificate generation timeout')
+            setCertificateGenerating(false)
+            clearInterval(pollIntervalRef.current)
+          }
+        } catch (err) {
+          console.error('[RequestTracker] Poll error:', err)
+          if (pollCount >= maxPolls) {
+            clearInterval(pollIntervalRef.current)
+            setCertificateGenerating(false)
+          }
+        }
+      }, 3000)
+    } else {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+      setCertificateGenerating(false)
+    }
+  }, [request?.overallStatus, request?.certificatePath, id])
 
   async function fetchRequest() {
     try {
@@ -82,7 +131,7 @@ export default function RequestTrackerPage() {
     )
   }
 
-  const approvalSteps = request.approvalSteps || []
+  const approvalSteps = request.departmentStatuses || []
   const approved = approvalSteps.filter(s => s.status === 'APPROVED').length
   const total = approvalSteps.length || 1
   const pct = total > 0 ? Math.round((approved / total) * 100) : 0
@@ -149,20 +198,29 @@ export default function RequestTrackerPage() {
           )}
         </div>
 
-        {/* Certificate download (if all approved) */}
+        {/* Certificate download section */}
         {request.overallStatus === 'APPROVED' && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center justify-between">
-            <div>
-              <div className="font-bold text-green-800 text-sm">🎉 No-Dues Certificate Ready!</div>
-              <div className="text-green-600 text-xs mt-0.5">All departments have cleared your request</div>
-            </div>
-            <button
-              onClick={() => navigate('/employee/certificates')}
-              className="btn-success flex items-center gap-2 text-sm"
-            >
-              <Download size={15} /> Download
-            </button>
-          </div>
+          <>
+            {certificateGenerating ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
+                <Loader2 className="animate-spin text-blue-600" size={20} />
+                <div>
+                  <div className="font-bold text-blue-800 text-sm">🔄 Generating Certificate...</div>
+                  <div className="text-blue-600 text-xs mt-0.5">Please wait, this may take a moment</div>
+                </div>
+              </div>
+            ) : request.certificatePath ? (
+              <CertificateDownload
+                request={request}
+                onDownload={() => employeeAPI.downloadCertificate(request.id)}
+              />
+            ) : (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+                <div className="font-bold text-green-800 text-sm mb-1">🎉 No-Dues Certificate Ready!</div>
+                <div className="text-green-600 text-xs mt-0.5">All departments have cleared your request. Certificate will be available shortly.</div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Rejection alert */}
@@ -192,7 +250,7 @@ export default function RequestTrackerPage() {
                     <Clock size={16} className="text-amber-500 mt-0.5" />
                   )}
                   <div className="flex-1">
-                    <div className="font-semibold text-slate-700">{step.departmentName}</div>
+                    <div className="font-semibold text-slate-700">{step.deptName}</div>
                     <div className="text-sm text-slate-500">{step.status}</div>
                     {step.remarks && <div className="text-xs text-slate-600 mt-1">{step.remarks}</div>}
                     {step.approvedBy && <div className="text-xs text-slate-400 mt-1">By {step.approvedBy}</div>}

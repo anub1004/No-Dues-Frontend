@@ -27,6 +27,17 @@ export default function CertificatesPage() {
     }
   }
 
+  async function handleDownloadCertificate(certificateId) {
+    try {
+      const result = await employeeAPI.downloadCertificate(certificateId)
+      console.log('✅ Certificate downloaded:', result.message)
+    } catch (err) {
+      const errorMessage = err.message || 'Failed to download certificate'
+      console.error('❌ Download error:', err)
+      alert(`Download failed: ${errorMessage}\n\nPlease try again or contact support if the problem persists.`)
+    }
+  }
+
   if (loading) {
     return (
       <AppLayout title="My Certificates">
@@ -89,7 +100,7 @@ export default function CertificatesPage() {
                   </div>
                   <div className="mt-3 flex gap-2">
                     <button
-                      onClick={() => alert(`Certificate ${req.id} would download as PDF.\n\nEmployee: ${req.empName}\nDepartment: ${req.department}\nReason: ${req.reason}`)}
+                      onClick={() => handleDownloadCertificate(req.id)}
                       className="btn-success flex items-center gap-2 text-sm"
                     >
                       <Download size={14} /> Download PDF

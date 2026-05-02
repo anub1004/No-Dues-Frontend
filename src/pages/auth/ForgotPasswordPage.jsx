@@ -1,12 +1,12 @@
 // src/pages/auth/ForgotPasswordPage.jsx
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Mail, CheckCircle2, AlertCircle } from 'lucide-react'
 import { authAPI } from '../../services/api'
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(0) // 0: email, 1: verify code, 2: success
+  const [step, setStep] = useState(0) // 0: email, 1: code + password, 2: success
   const [email, setEmail] = useState('')
   const [resetCode, setResetCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
       }
 
       await authAPI.forgotPassword(email)
-      setSuccess('Reset code sent to your email. Check your inbox!')
+      setSuccess('✓ Reset code sent to your email. Check your inbox!')
       setStep(1)
     } catch (err) {
       setError(err.message || 'Failed to send reset code')
@@ -155,7 +155,7 @@ export default function ForgotPasswordPage() {
                   maxLength="6"
                   disabled={loading}
                 />
-                <p className="text-xs text-slate-500 mt-1">Check your email for the 6-digit code</p>
+                <p className="text-xs text-slate-500 mt-1">Enter the 6-digit code from your email</p>
               </div>
 
               <div>
@@ -163,7 +163,7 @@ export default function ForgotPasswordPage() {
                 <input
                   type="password"
                   className="input-field"
-                  placeholder="Enter new password"
+                  placeholder="Enter new password (min 6 characters)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={loading}
@@ -190,6 +190,7 @@ export default function ForgotPasswordPage() {
                     setResetCode('')
                     setNewPassword('')
                     setConfirmPassword('')
+                    setSuccess('')
                   }}
                   className="btn-secondary flex-1"
                   disabled={loading}
